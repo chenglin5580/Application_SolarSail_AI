@@ -1,0 +1,2 @@
+model_checkpoint_path: "C:\\Users\\cheng\\PycharmProjects\\Application_RG_AI\\3 SolarSail\\3 DDPG\\DDPG_Net\\data.chkp"
+all_model_checkpoint_paths: "C:\\Users\\cheng\\PycharmProjects\\Application_RG_AI\\3 SolarSail\\3 DDPG\\DDPG_Net\\data.chkp"
