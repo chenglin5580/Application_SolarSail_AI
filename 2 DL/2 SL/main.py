@@ -87,8 +87,13 @@ else:
 
     RLmethod.verify(ba, bq)
 
+    info = {}
     # test the actor
     action = RLmethod.chose_action(observation)
+    lambda_all = action[0:4] * 10 - 5
+    td_f = action[4] * 500 + 100
+    print('lambda_all', lambda_all)
+    print('td_f', td_f)
     observation, reward, done, info = env.step(action)
     print('reward_actor', reward)
     print('total_day',  env.td)
