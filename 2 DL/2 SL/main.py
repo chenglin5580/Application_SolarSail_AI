@@ -91,6 +91,7 @@ else:
     action = RLmethod.chose_action(observation)
     observation, reward, done, info = env.step(action)
     print('reward_actor', reward)
+    print('total_day',  env.td)
 
     ob_profile = info['ob_profile']
     alpha_profile = info['alpha_profile']
