@@ -111,7 +111,7 @@ class Method(object):
 
     def chose_action(self, s):
         if self.train:
-            if self.pointer < 15000:
+            if self.pointer < 10000:
                 action = np.random.rand(1, 5).reshape(5)
             else:
                 rand_pick = np.random.rand(1)
