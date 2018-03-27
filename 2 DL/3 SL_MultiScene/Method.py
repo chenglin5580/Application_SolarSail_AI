@@ -20,6 +20,7 @@ import sys
 class Method(object):
     def __init__(
             self,
+            method,
             a_dim,  # 动作的维度
             ob_dim,  # 状态的维度
             a_bound,  # 动作的上下限
@@ -38,7 +39,7 @@ class Method(object):
             train=True  # 训练的时候有探索
     ):
         # DDPG网络参数
-        self.method = 'MovFan'
+        self.method = method + '/' + str(LR_A) + '/' + str(LR_C)
         self.LR_A = LR_A
         self.LR_C = LR_C
         self.GAMMA = GAMMA
@@ -107,7 +108,7 @@ class Method(object):
 
         if self.train and self.tensorboard:
             self.merged = tf.summary.merge_all()
-            self.writer = tf.summary.FileWriter('./logs/' + str(self.LR_C), self.sess.graph)
+            self.writer = tf.summary.FileWriter('./logs/' + self.method, self.sess.graph)
 
     def chose_action(self, s):
         if self.train:

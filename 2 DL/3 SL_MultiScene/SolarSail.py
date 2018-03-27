@@ -26,7 +26,7 @@ class SolarSail:
     def reset(self):
         self.t = 0
         self.td = 0
-        self.constant = {'beta': 0.5 / 5.93, 'r0': 1, 'u0': 0, 'phi0': 0,
+        self.constant = {'beta': 0.5 / 5.93, 'r0': 1.2, 'u0': 0, 'phi0': 0,
                          'r_f': 1.524, 'u_f': 0, 'phi_f': 0}
         self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
         self.constant['v_f'] = 1.0 / np.sqrt(self.constant['r_f'])

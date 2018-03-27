@@ -32,9 +32,11 @@ print('-----------------------------\t')
 
 
 ## method settting
+method = 'r0=1.2'
 train_flag = True
 train_flag = False
 RLmethod = Method(
+            method,
             env.action_dim,  # 动作的维度
             env.ob_dim,  # 状态的维度
             env.a_bound,  # 动作的上下限
