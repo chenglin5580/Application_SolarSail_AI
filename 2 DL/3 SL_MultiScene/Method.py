@@ -162,14 +162,13 @@ class Method(object):
             self.iteration += 1
 
 
-    # def verify(self, ba, bq_target):
-    #
-    #     q = self.sess.run(self.q, {self.a: ba, self.q_target: bq_target})
-    #     td_error = self.sess.run(self.td_error, {self.a: ba, self.q_target: bq_target})
-    #     print('q_target', bq_target)
-    #     print('q_test', q)
-    #     print('q_error', bq_target-q)
-    #     print('td_error', td_error)
+    def critic_verify(self, s, action, reward):
+        bs = s[np.newaxis, :]
+        ba = action[np.newaxis, :]
+
+        q = self.sess.run(self.q, {self.S: bs, self.a: ba})
+        td_error = q - reward
+        print('td_error', td_error)
 
     def store_transition(self, s, a, r):
         # 存储需要的信息到记忆池
