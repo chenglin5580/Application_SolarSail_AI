@@ -77,7 +77,7 @@ if RLmethod.train:
 else:
     # test the critic
     print('----------------paper result-------------------')
-    action = np.array([(-1.609601+5)/10, (0.042179+5)/10, (-0.160488+5)/10, (-1.597537+5)/10, (568-100)/500])
+    action = np.array([(-1.609601)/20, (0.042179)/20, (-0.160488)/20, (-1.597537)/20, (568-400)/300])
     observation, reward, done, info = env.step(action)
     print('paper_reward', reward)
     ba = action
@@ -107,6 +107,10 @@ else:
     print('r_f_error', env.constant['r_f']-env.state[0])
     print('u_f_error', env.state[2])
     print('v_f_error', env.state[3]-env.constant['v_f'])
+
+    print('----------------Critic result-------------------')
+    RLmethod.critic_verify(observation, action, reward)
+
 
     ob_profile = info['ob_profile']
     alpha_profile = info['alpha_profile']

@@ -41,7 +41,7 @@ class SolarSail:
         ob_profile = np.empty((0, 4))
         alpha_profile = np.empty((0, 1))
         reward_profile = np.empty((0, 1))
-        observation = self.reset()
+        self.observation = self.reset()
         lambda_all = action[0:4] * 20
         td_f = action[4] * 300 + 400
 

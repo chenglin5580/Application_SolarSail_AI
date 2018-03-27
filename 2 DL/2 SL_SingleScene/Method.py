@@ -152,7 +152,7 @@ class Method(object):
 
             if self.tensorboard:
                 if self.iteration % 10 == 0:
-                    result_merge = self.sess.run(self.merged, {self.S: bs,self.a: ba, self.q_target: bq})
+                    result_merge = self.sess.run(self.merged, {self.S: bs, self.a: ba, self.q_target: bq})
                     self.writer.add_summary(result_merge, self.iteration)
 
             self.iteration += 1

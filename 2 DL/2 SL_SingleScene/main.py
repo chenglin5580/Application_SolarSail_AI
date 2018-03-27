@@ -33,7 +33,7 @@ print('-----------------------------\t')
 
 ## method settting
 train_flag = True
-train_flag = False
+# train_flag = False
 RLmethod = Method(
             env.action_dim,  # 动作的维度
             env.state_dim,  # 状态的维度
