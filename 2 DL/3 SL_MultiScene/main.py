@@ -32,9 +32,9 @@ print('-----------------------------\t')
 
 
 ## method settting
-method = 'r0=1.2'
+method = 'r0=random'
 train_flag = True
-train_flag = False
+# train_flag = False
 RLmethod = Method(
             method,
             env.action_dim,  # 动作的维度
@@ -50,7 +50,7 @@ RLmethod = Method(
             MEMORY_SIZE=3000,  # 记忆池容量
             BATCH_SIZE=128,  # 批次数量
             units_a=100,  # Actor神经网络单元数
-            units_c=1000,  # Crtic神经网络单元数
+            units_c=300,  # Crtic神经网络单元数
             tensorboard=True,  # 是否存储tensorboard
             train=train_flag  # 训练的时候有探索
             )
@@ -148,6 +148,12 @@ else:
     plt.title('reward')
 
     plt.show()
+
+
+
+# setting
+
+# tensorboard --logdir="2 DL/3 SL_MultiScene/logs"
 
 
 

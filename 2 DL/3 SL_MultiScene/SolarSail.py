@@ -12,6 +12,8 @@ class SolarSail:
         self.AU = 1.4959787 * (10 ** 11)
         self.mu = 1.32712348 * (10 ** 20)
         self.TU = np.sqrt(self.AU ** 3 / self.mu)
+        self.constant = {'beta': 0.5 / 5.93, 'u0': 0, 'phi0': 0, 'r_f': 1.524, 'u_f': 0, 'phi_f': 0}
+        self.constant['v_f'] = 1.0 / np.sqrt(self.constant['r_f'])
         # 特征加速度ac和光压因子beta或者说k的转换关系ac = 5.93beta
         self.delta_d = 1  # 仿真步长，未归一化，单位天
         self.delta_t = self.delta_d * (24 * 60 * 60) / self.TU  # 无单位
@@ -26,13 +28,12 @@ class SolarSail:
     def reset(self):
         self.t = 0
         self.td = 0
-        self.constant = {'beta': 0.5 / 5.93, 'r0': 1.2, 'u0': 0, 'phi0': 0,
-                         'r_f': 1.524, 'u_f': 0, 'phi_f': 0}
+        randr0 = (np.random.rand(1)-0.5)*2
+        self.constant['r0'] = (0.2*randr0 + 1.1)[0]
         self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
-        self.constant['v_f'] = 1.0 / np.sqrt(self.constant['r_f'])
         self.state = np.array([self.constant['r0'], self.constant['phi0'],
                                self.constant['u0'], self.constant['v0']])  # [r phi u v]
-        self.observation = np.array([self.constant['r0']])
+        self.observation = randr0
         return self.observation
 
     def step(self, action):

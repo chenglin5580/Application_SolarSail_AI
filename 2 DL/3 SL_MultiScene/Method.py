@@ -39,7 +39,7 @@ class Method(object):
             train=True  # 训练的时候有探索
     ):
         # DDPG网络参数
-        self.method = method + '/' + str(LR_A) + '/' + str(LR_C)
+        self.method = method + '/' + 'LR_A' + str(LR_A) + '/' + 'LR_C' + str(LR_C) + '/' + 'units_c' + str(units_c)
         self.LR_A = LR_A
         self.LR_C = LR_C
         self.GAMMA = GAMMA
@@ -151,6 +151,8 @@ class Method(object):
             # td_error = self.sess.run(self.td_error, {self.a: ba, self.R: br})
             # print('td_error', td_error)
             self.sess.run(self.ctrain, {self.S: bs, self.a: ba, self.q_target: bq})
+            td_error = self.sess.run(self.td_error, {self.S: bs, self.a: ba, self.q_target: bq})
+            print('reward_error', td_error)
 
             if self.pointer > 10000:
                 self.sess.run(self.atrain, {self.S: bs, self.a: ba, self.q_target: bq})
@@ -197,7 +199,9 @@ class Method(object):
             net1 = tf.nn.relu(tf.matmul(s, w1_s) + tf.matmul(a, w1_a) + b1)
             net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
             net3 = tf.layers.dense(net2, n_l1, activation=tf.nn.relu, name='l3', trainable=trainable)
-            q = tf.layers.dense(net3, 1, trainable=trainable)  # Q(s,a)
+            net4 = tf.layers.dense(net3, n_l1, activation=tf.nn.relu, name='l4', trainable=trainable)
+            net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
+            q = tf.layers.dense(net5, 1, trainable=trainable)  # Q(s,a)
             return q
 
     def net_save(self):
