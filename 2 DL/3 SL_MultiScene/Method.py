@@ -185,7 +185,8 @@ class Method(object):
             n_l1 = self.units_a
             net0 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, name='l0', trainable=trainable)
             net1 = tf.layers.dense(net0, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
-            a = tf.layers.dense(net1, self.a_dim, activation=tf.nn.tanh, name='a', trainable=trainable)
+            net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
+            a = tf.layers.dense(net2, self.a_dim, activation=tf.nn.tanh, name='a', trainable=trainable)
             return a
 
     def _build_c(self, s, a, scope, trainable):
@@ -201,7 +202,7 @@ class Method(object):
             net4 = tf.layers.dense(net3, n_l1, activation=tf.nn.relu, name='l4', trainable=trainable)
             # net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
             # net6 = tf.layers.dense(net5, n_l1, activation=tf.nn.relu, name='l6', trainable=trainable)
-            q = tf.layers.dense(net3, 1, trainable=trainable)  # Q(s,a)
+            q = tf.layers.dense(net4, 1, trainable=trainable)  # Q(s,a)
             return q
 
     def net_save(self):

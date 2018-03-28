@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 
 ############################ Hyper Parameters #################################
 
-max_Episodes = 30000
+max_Episodes = 50000
 max_Ep_Steps = 2000
 rendering = False
 ############################ Object and Method  ####################################
@@ -36,7 +36,7 @@ print('-----------------------------\t')
 ## method settting
 method = 'r0=random0.1'
 train_flag = True
-train_flag = False
+# train_flag = False
 RLmethod = Method(
             method,
             env.action_dim,  # 动作的维度
@@ -51,7 +51,7 @@ RLmethod = Method(
             TAU=0.01,  # 软替代率，例如0.01表示学习eval网络0.01的值，和原网络0.99的值
             MEMORY_SIZE=3000,  # 记忆池容量
             BATCH_SIZE=128,  # 批次数量
-            units_a=500,  # Actor神经网络单元数
+            units_a=1000,  # Actor神经网络单元数
             units_c=1000,  # Crtic神经网络单元数
             actor_learn_start=10000,  # Actor开始学习的代数
             tensorboard=True,  # 是否存储tensorboard
