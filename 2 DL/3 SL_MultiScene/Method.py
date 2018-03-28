@@ -40,7 +40,8 @@ class Method(object):
             train=True  # 训练的时候有探索
     ):
         # DDPG网络参数
-        self.method = method + '/' + 'LR_A' + str(LR_A) + '/' + 'LR_C' + str(LR_C) + '/' + 'units_c' + str(units_c)
+        self.method = method + '/' + 'LR_A' + str(LR_A) + '/' + 'LR_C' + str(LR_C) + '/' + 'units_a' + str(units_a) \
+                      + '/' + 'units_c' + str(units_c)
         self.LR_A = LR_A
         self.LR_C = LR_C
         self.GAMMA = GAMMA
@@ -198,9 +199,9 @@ class Method(object):
             net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
             net3 = tf.layers.dense(net2, n_l1, activation=tf.nn.relu, name='l3', trainable=trainable)
             net4 = tf.layers.dense(net3, n_l1, activation=tf.nn.relu, name='l4', trainable=trainable)
-            net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
-            net6 = tf.layers.dense(net5, n_l1, activation=tf.nn.relu, name='l6', trainable=trainable)
-            q = tf.layers.dense(net6, 1, trainable=trainable)  # Q(s,a)
+            # net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
+            # net6 = tf.layers.dense(net5, n_l1, activation=tf.nn.relu, name='l6', trainable=trainable)
+            q = tf.layers.dense(net3, 1, trainable=trainable)  # Q(s,a)
             return q
 
     def net_save(self):

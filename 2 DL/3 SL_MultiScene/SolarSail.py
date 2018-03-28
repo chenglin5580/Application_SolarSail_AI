@@ -30,7 +30,7 @@ class SolarSail:
         self.td = 0
         rand_r0 = (np.random.rand(1)-0.5)*2
         self.constant['r0'] = (0.1*rand_r0 + 1.1)[0]
-        # self.constant['r0'] = 1.1
+        # self.constant['r0'] = 1.0
         self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
         self.state = np.array([self.constant['r0'], self.constant['phi0'],
                                self.constant['u0'], self.constant['v0']])  # [r phi u v]
