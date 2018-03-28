@@ -35,6 +35,7 @@ class Method(object):
             BATCH_SIZE=256,  # 批次数量
             units_a=64,  # Actor神经网络单元数
             units_c=64,  # Crtic神经网络单元数
+            actor_learn_start=10000,  # Actor开始学习的代数
             tensorboard=True,
             train=True  # 训练的时候有探索
     ):
@@ -48,6 +49,7 @@ class Method(object):
         self.BATCH_SIZE = BATCH_SIZE
         self.units_a = units_a
         self.units_c = units_c
+        self.actor_learn_start = actor_learn_start
         self.epsilon_init = epilon_init  # 初始的探索值
         self.epsilon = self.epsilon_init
         self.epsilon_end = e_greedy_end
@@ -112,7 +114,7 @@ class Method(object):
 
     def chose_action(self, s):
         if self.train:
-            if self.pointer < 10000:
+            if self.pointer < self.actor_learn_start:
                 action = np.random.rand(1, 5).reshape(5)
             else:
                 rand_pick = np.random.rand(1)
@@ -146,15 +148,11 @@ class Method(object):
             bq = bt[:, -1:]
 
             # 更新a和c，有可以改进的地方，可以适当更改一些更新a和c的频率
-            # q = self.sess.run(self.q, {self.a: ba})
-            # print('reward_error', br-q)
-            # td_error = self.sess.run(self.td_error, {self.a: ba, self.R: br})
-            # print('td_error', td_error)
             self.sess.run(self.ctrain, {self.S: bs, self.a: ba, self.q_target: bq})
             td_error = self.sess.run(self.td_error, {self.S: bs, self.a: ba, self.q_target: bq})
             print('reward_error', td_error)
 
-            if self.pointer > 10000:
+            if self.pointer > self.actor_learn_start:
                 self.sess.run(self.atrain, {self.S: bs, self.a: ba, self.q_target: bq})
 
             if self.tensorboard:
@@ -200,8 +198,7 @@ class Method(object):
             net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
             net3 = tf.layers.dense(net2, n_l1, activation=tf.nn.relu, name='l3', trainable=trainable)
             net4 = tf.layers.dense(net3, n_l1, activation=tf.nn.relu, name='l4', trainable=trainable)
-            net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
-            q = tf.layers.dense(net5, 1, trainable=trainable)  # Q(s,a)
+            q = tf.layers.dense(net4, 1, trainable=trainable)  # Q(s,a)
             return q
 
     def net_save(self):

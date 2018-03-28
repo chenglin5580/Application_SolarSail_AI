@@ -32,9 +32,9 @@ print('-----------------------------\t')
 
 
 ## method settting
-method = 'r0=random'
+method = 'r0=1.1'
 train_flag = True
-# train_flag = False
+train_flag = False
 RLmethod = Method(
             method,
             env.action_dim,  # 动作的维度
@@ -51,6 +51,7 @@ RLmethod = Method(
             BATCH_SIZE=128,  # 批次数量
             units_a=100,  # Actor神经网络单元数
             units_c=300,  # Crtic神经网络单元数
+            actor_learn_start=10000,  # Actor开始学习的代数
             tensorboard=True,  # 是否存储tensorboard
             train=train_flag  # 训练的时候有探索
             )
@@ -66,7 +67,7 @@ if RLmethod.train:
 
         action = RLmethod.chose_action(observation)
 
-        observation, reward, done, info = env.step(action)
+        qqq, reward, done, info = env.step(action)
 
         RLmethod.store_transition(observation, action, reward)
 

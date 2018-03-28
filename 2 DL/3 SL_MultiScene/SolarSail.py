@@ -28,12 +28,13 @@ class SolarSail:
     def reset(self):
         self.t = 0
         self.td = 0
-        randr0 = (np.random.rand(1)-0.5)*2
-        self.constant['r0'] = (0.2*randr0 + 1.1)[0]
+        # rand_r0 = (np.random.rand(1)-0.5)*2
+        # self.constant['r0'] = (0.01*rand_r0 + 1.1)[0]
+        self.constant['r0'] = 1.1
         self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
         self.state = np.array([self.constant['r0'], self.constant['phi0'],
                                self.constant['u0'], self.constant['v0']])  # [r phi u v]
-        self.observation = randr0
+        self.observation = np.array([self.constant['r0']])
         return self.observation
 
     def step(self, action):
@@ -42,14 +43,13 @@ class SolarSail:
         ob_profile = np.empty((0, 4))
         alpha_profile = np.empty((0, 1))
         reward_profile = np.empty((0, 1))
-        self.observation = self.reset()
         lambda_all = action[0:4] * 20
         td_f = action[4] * 300 + 400
 
         while True:
             lambda1, lambda2, lambda3, lambda4 = lambda_all
             r, phi, u, v = self.state  # 当前状态的参数值
-            if lambda4 == 0:
+            if np.abs(lambda4) < 1e-5:
                 if lambda3 <= 0:
                     alpha = 0
                 else:
