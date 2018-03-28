@@ -28,9 +28,9 @@ class SolarSail:
     def reset(self):
         self.t = 0
         self.td = 0
-        # rand_r0 = (np.random.rand(1)-0.5)*2
-        # self.constant['r0'] = (0.01*rand_r0 + 1.1)[0]
-        self.constant['r0'] = 1.1
+        rand_r0 = (np.random.rand(1)-0.5)*2
+        self.constant['r0'] = (0.1*rand_r0 + 1.1)[0]
+        # self.constant['r0'] = 1.1
         self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
         self.state = np.array([self.constant['r0'], self.constant['phi0'],
                                self.constant['u0'], self.constant['v0']])  # [r phi u v]
@@ -105,7 +105,7 @@ class SolarSail:
                 info['reward_profile'] = reward_profile
                 break
 
-        return self.observation.copy(), reward, done, info
+        return self.observation.copy(), reward/10, done, info
 
 
 if __name__ == '__main__':

@@ -198,7 +198,9 @@ class Method(object):
             net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
             net3 = tf.layers.dense(net2, n_l1, activation=tf.nn.relu, name='l3', trainable=trainable)
             net4 = tf.layers.dense(net3, n_l1, activation=tf.nn.relu, name='l4', trainable=trainable)
-            q = tf.layers.dense(net4, 1, trainable=trainable)  # Q(s,a)
+            net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
+            net6 = tf.layers.dense(net5, n_l1, activation=tf.nn.relu, name='l6', trainable=trainable)
+            q = tf.layers.dense(net6, 1, trainable=trainable)  # Q(s,a)
             return q
 
     def net_save(self):
