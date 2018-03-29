@@ -20,8 +20,9 @@ import sys
 class Method(object):
     def __init__(
             self,
+            method,
             a_dim,  # 动作的维度
-            s_dim,  # 状态的维度
+            ob_dim,  # 状态的维度
             a_bound,  # 动作的上下限
             e_greedy_end=0.1,  # 最后的探索值 0.1倍幅值
             e_liner_times=1000,  # 探索值经历多少次学习变成e_end
@@ -34,11 +35,14 @@ class Method(object):
             BATCH_SIZE=256,  # 批次数量
             units_a=64,  # Actor神经网络单元数
             units_c=64,  # Crtic神经网络单元数
+            actor_learn_start=10000,  # Actor开始学习的代数
             tensorboard=True,
             train=True  # 训练的时候有探索
     ):
         # DDPG网络参数
-        self.method = 'MovFan'
+        # self.method = method + '/' + 'LR_A' + str(LR_A) + '/' + 'LR_C' + str(LR_C) + '/' + 'units_a' + str(units_a) \
+        #               + '/' + 'units_c' + str(units_c)
+        self.method = method
         self.LR_A = LR_A
         self.LR_C = LR_C
         self.GAMMA = GAMMA
@@ -47,6 +51,7 @@ class Method(object):
         self.BATCH_SIZE = BATCH_SIZE
         self.units_a = units_a
         self.units_c = units_c
+        self.actor_learn_start = actor_learn_start
         self.epsilon_init = epilon_init  # 初始的探索值
         self.epsilon = self.epsilon_init
         self.epsilon_end = e_greedy_end
@@ -64,40 +69,54 @@ class Method(object):
         self.model_path = os.path.join(self.model_path0, 'data.chkp')
 
         # DDPG构建
-        self.memory = np.zeros((self.MEMORY_CAPACITY, s_dim + a_dim + 1), dtype=np.float32)  # 存储s,a,r,s_,done
+        self.memory = np.zeros((self.MEMORY_CAPACITY, ob_dim + a_dim + 1), dtype=np.float32)  # 存储s,a,r,s_,done
         self.sess = tf.Session()
 
-        self.a_dim, self.s_dim, self.a_bound = a_dim, s_dim, a_bound,
-        self.S = tf.placeholder(tf.float32, [None, s_dim], 'state')
-        self.a = tf.placeholder(tf.float32, [None, a_dim], 'action')
+        self.a_dim, self.s_dim, self.a_bound = a_dim, ob_dim, a_bound,
+        self.S = tf.placeholder(tf.float32, [None, ob_dim], 'state')
+        self.a_his = tf.placeholder(tf.float32, [None, a_dim], 'action')
         self.q_target = tf.placeholder(tf.float32, [None, 1], 'q_target')
 
         # 建立actor网络
         with tf.variable_scope('Actor'):
-            self.a_pre = self._build_a(self.S, scope='eval', trainable=True)
-            tf.summary.histogram('Actor/eval', self.a_pre)
+            mu, sigma = self._build_a(self.S, scope='eval', trainable=True)
+            mu, sigma = mu, sigma + 1e-4
+            # self.a_pre = self._build_a(self.S, scope='eval', trainable=True)
+            tf.summary.histogram('Actor/eval', mu)
+            tf.summary.histogram('Actor/sigma', sigma)
             self.ae_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/eval')
 
         # 建立Critic网络
         with tf.variable_scope('Critic'):
-            self.q = self._build_c(self.a, scope='eval', trainable=True)
-            q_ = self._build_c(self.a_pre, scope='target', trainable=False)
+            self.q = self._build_c(self.S, scope='eval', trainable=True)
             tf.summary.histogram('Critic/eval', self.q)
             self.ce_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/eval')
-            self.ct_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/target')
-
-        self.replace = [
-            [tf.assign(tc, ec)] for tc, ec in zip(self.ct_params, self.ce_params)]
 
         # q train
-        self.td_error = tf.losses.mean_squared_error(labels=self.q_target, predictions=self.q)
-        tf.summary.scalar('td_error', self.td_error)
-        self.ctrain = tf.train.AdamOptimizer(self.LR_C).minimize(self.td_error, var_list=self.ce_params)
+        td = tf.subtract(self.q_target, self.q, name='TD_error')
+        with tf.name_scope('c_loss'):
+            self.c_loss = tf.reduce_mean(tf.square(td))
+        tf.summary.scalar('td_error', self.c_loss)
+        self.ctrain = tf.train.AdamOptimizer(self.LR_C).minimize(self.c_loss, var_list=self.ce_params)
 
         # a train
-        a_loss = tf.reduce_mean(q_)
-        self.atrain = tf.train.AdamOptimizer(self.LR_A).minimize(a_loss, var_list=self.ae_params)
-        tf.summary.scalar('a_loss', a_loss)
+        normal_dist = tf.contrib.distributions.Normal(mu, sigma)  # tf自带的正态分布函数
+        with tf.name_scope('choose_a'):  # use local params to choose action
+            self.A = tf.clip_by_value(tf.squeeze(normal_dist.sample(1), axis=0), -1, 1)  # 根据actor给出的分布，选取动作
+            self.B = tf.clip_by_value(mu, -1, 1)  # 根据actor给出的分布，选取动作
+            self.C = sigma
+
+        # 动作网络优化
+        with tf.name_scope('a_loss'):
+            log_prob = normal_dist.log_prob(self.a_his)  # 概率的log值
+            exp_v = log_prob * tf.stop_gradient(td)  # stop_gradient停止梯度传递的意思
+            entropy = normal_dist.entropy()
+            # encourage exploration，香农熵，评价分布的不确定性，鼓励探索，防止提早进入次优
+            self.exp_v = -0.01 * entropy + exp_v
+            self.a_loss = tf.reduce_mean(self.exp_v)  # actor的优化目标是价值函数最大
+
+        self.atrain = tf.train.AdamOptimizer(self.LR_A).minimize(self.a_loss, var_list=self.ae_params)
+        tf.summary.scalar('a_loss',  self.a_loss)
 
         self.actor_saver = tf.train.Saver()
         if self.train:
@@ -107,20 +126,18 @@ class Method(object):
 
         if self.train and self.tensorboard:
             self.merged = tf.summary.merge_all()
-            self.writer = tf.summary.FileWriter('./logs/' + str(self.LR_C), self.sess.graph)
+            self.writer = tf.summary.FileWriter('./logs/' + self.method, self.sess.graph)
 
     def chose_action(self, s):
         if self.train:
-            if self.iteration < 10000:
+            if self.pointer < self.actor_learn_start:
                 action = np.random.rand(1, 5).reshape(5)
             else:
-                if np.random.rand(1) < 0.5:
-                    action = np.random.rand(1, 5).reshape(5)
-                else:
-                    action = self.sess.run(self.a_pre, {self.S: s[np.newaxis, :]})[0]  # 直接根据网络得到动作的值
-
+                s = s[np.newaxis, :]
+                action = self.sess.run(self.A, {self.S: s})[0]
         else:
-            action = self.sess.run(self.a_pre, {self.S: s[np.newaxis, :]})[0]  # 直接根据网络得到动作的值
+            s = s[np.newaxis, :]
+            action = self.sess.run(self.B, {self.S: s})[0]
 
         return action
 
@@ -141,13 +158,11 @@ class Method(object):
             bq = bt[:, -1:]
 
             # 更新a和c，有可以改进的地方，可以适当更改一些更新a和c的频率
-            # q = self.sess.run(self.q, {self.a: ba})
-            # print('reward_error', br-q)
-            # td_error = self.sess.run(self.td_error, {self.a: ba, self.R: br})
-            # print('td_error', td_error)
-            self.sess.run(self.ctrain, {self.a: ba, self.q_target: bq})
+            self.sess.run(self.ctrain, {self.S: bs, self.a: ba, self.q_target: bq})
+            td_error = self.sess.run(self.td_error, {self.S: bs, self.a: ba, self.q_target: bq})
+            print('reward_error', td_error)
 
-            if self.iteration > 10000:
+            if self.pointer > self.actor_learn_start:
                 self.sess.run(self.atrain, {self.S: bs, self.a: ba, self.q_target: bq})
 
             if self.tensorboard:
@@ -157,12 +172,13 @@ class Method(object):
 
             self.iteration += 1
 
-    def verify(self, ba, bq_target):
-        q = self.sess.run(self.q, {self.a: ba, self.q_target: bq_target})
-        td_error = self.sess.run(self.td_error, {self.a: ba, self.q_target: bq_target})
-        print('q_target', bq_target)
-        print('q_test', q)
-        print('q_error', bq_target-q)
+
+    def critic_verify(self, s, action, reward):
+        bs = s[np.newaxis, :]
+        ba = action[np.newaxis, :]
+
+        q = self.sess.run(self.q, {self.S: bs, self.a: ba})
+        td_error = q - reward
         print('td_error', td_error)
 
     def store_transition(self, s, a, r):
@@ -178,16 +194,23 @@ class Method(object):
             n_l1 = self.units_a
             net0 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, name='l0', trainable=trainable)
             net1 = tf.layers.dense(net0, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
-            a = tf.layers.dense(net1, self.a_dim, activation=tf.nn.tanh, name='a', trainable=trainable)
-            return a
+            mu = tf.layers.dense(net1, self.a_dim, activation=tf.nn.tanh, name='mu', trainable=trainable)
+            sigma_1 = tf.layers.dense(net1, self.a_dim, activation=tf.sigmoid, name='sigma_1', trainable=trainable)
+            sigma = tf.multiply(sigma_1, 1, name='sigma')
+            return mu, sigma
 
-    def _build_c(self, a, scope, trainable):
+
+
+    def _build_c(self, s, scope, trainable):
         # 建立critic网络
         with tf.variable_scope(scope):
             n_l1 = self.units_c
-            net1 = tf.layers.dense(a, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
+            net1 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
             net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
             net3 = tf.layers.dense(net2, n_l1, activation=tf.nn.relu, name='l3', trainable=trainable)
+            # net4 = tf.layers.dense(net3, n_l1, activation=tf.nn.relu, name='l4', trainable=trainable)
+            # net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
+            # net6 = tf.layers.dense(net5, n_l1, activation=tf.nn.relu, name='l6', trainable=trainable)
             q = tf.layers.dense(net3, 1, trainable=trainable)  # Q(s,a)
             return q
 

@@ -20,9 +20,8 @@ import sys
 class Method(object):
     def __init__(
             self,
-            method,
             a_dim,  # 动作的维度
-            ob_dim,  # 状态的维度
+            s_dim,  # 状态的维度
             a_bound,  # 动作的上下限
             e_greedy_end=0.1,  # 最后的探索值 0.1倍幅值
             e_liner_times=1000,  # 探索值经历多少次学习变成e_end
@@ -35,13 +34,11 @@ class Method(object):
             BATCH_SIZE=256,  # 批次数量
             units_a=64,  # Actor神经网络单元数
             units_c=64,  # Crtic神经网络单元数
-            actor_learn_start=10000,  # Actor开始学习的代数
             tensorboard=True,
             train=True  # 训练的时候有探索
     ):
         # DDPG网络参数
-        self.method = method + '/' + 'LR_A' + str(LR_A) + '/' + 'LR_C' + str(LR_C) + '/' + 'units_a' + str(units_a) \
-                      + '/' + 'units_c' + str(units_c)
+        self.method = 'MovFan'
         self.LR_A = LR_A
         self.LR_C = LR_C
         self.GAMMA = GAMMA
@@ -50,7 +47,6 @@ class Method(object):
         self.BATCH_SIZE = BATCH_SIZE
         self.units_a = units_a
         self.units_c = units_c
-        self.actor_learn_start = actor_learn_start
         self.epsilon_init = epilon_init  # 初始的探索值
         self.epsilon = self.epsilon_init
         self.epsilon_end = e_greedy_end
@@ -68,11 +64,11 @@ class Method(object):
         self.model_path = os.path.join(self.model_path0, 'data.chkp')
 
         # DDPG构建
-        self.memory = np.zeros((self.MEMORY_CAPACITY, ob_dim + a_dim + 1), dtype=np.float32)  # 存储s,a,r,s_,done
+        self.memory = np.zeros((self.MEMORY_CAPACITY, s_dim + a_dim + 1), dtype=np.float32)  # 存储s,a,r,s_,done
         self.sess = tf.Session()
 
-        self.a_dim, self.s_dim, self.a_bound = a_dim, ob_dim, a_bound,
-        self.S = tf.placeholder(tf.float32, [None, ob_dim], 'state')
+        self.a_dim, self.s_dim, self.a_bound = a_dim, s_dim, a_bound,
+        self.S = tf.placeholder(tf.float32, [None, s_dim], 'state')
         self.a = tf.placeholder(tf.float32, [None, a_dim], 'action')
         self.q_target = tf.placeholder(tf.float32, [None, 1], 'q_target')
 
@@ -84,8 +80,8 @@ class Method(object):
 
         # 建立Critic网络
         with tf.variable_scope('Critic'):
-            self.q = self._build_c(self.S, self.a, scope='eval', trainable=True)
-            q_ = self._build_c(self.S, self.a_pre, scope='target', trainable=False)
+            self.q = self._build_c(self.a, scope='eval', trainable=True)
+            q_ = self._build_c(self.a_pre, scope='target', trainable=False)
             tf.summary.histogram('Critic/eval', self.q)
             self.ce_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/eval')
             self.ct_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/target')
@@ -111,22 +107,18 @@ class Method(object):
 
         if self.train and self.tensorboard:
             self.merged = tf.summary.merge_all()
-            self.writer = tf.summary.FileWriter('./logs/' + self.method, self.sess.graph)
+            self.writer = tf.summary.FileWriter('./logs/' + str(self.LR_C), self.sess.graph)
 
     def chose_action(self, s):
         if self.train:
-            if self.pointer < self.actor_learn_start:
+            if self.iteration < 10000:
                 action = np.random.rand(1, 5).reshape(5)
             else:
-                rand_pick = np.random.rand(1)
-                if rand_pick < 0.2:
+                if np.random.rand(1) < 0.5:
                     action = np.random.rand(1, 5).reshape(5)
-                elif rand_pick < 0.8:
-                    action = self.sess.run(self.a_pre, {self.S: s[np.newaxis, :]})[0]  # 直接根据网络得到动作的值
-                    action = np.clip(np.random.normal(action, 0.1),
-                                     -1, 1)  # 通过干扰增加一些探索
                 else:
                     action = self.sess.run(self.a_pre, {self.S: s[np.newaxis, :]})[0]  # 直接根据网络得到动作的值
+
         else:
             action = self.sess.run(self.a_pre, {self.S: s[np.newaxis, :]})[0]  # 直接根据网络得到动作的值
 
@@ -149,11 +141,13 @@ class Method(object):
             bq = bt[:, -1:]
 
             # 更新a和c，有可以改进的地方，可以适当更改一些更新a和c的频率
-            self.sess.run(self.ctrain, {self.S: bs, self.a: ba, self.q_target: bq})
-            td_error = self.sess.run(self.td_error, {self.S: bs, self.a: ba, self.q_target: bq})
-            print('reward_error', td_error)
+            # q = self.sess.run(self.q, {self.a: ba})
+            # print('reward_error', br-q)
+            # td_error = self.sess.run(self.td_error, {self.a: ba, self.R: br})
+            # print('td_error', td_error)
+            self.sess.run(self.ctrain, {self.a: ba, self.q_target: bq})
 
-            if self.pointer > self.actor_learn_start:
+            if self.iteration > 10000:
                 self.sess.run(self.atrain, {self.S: bs, self.a: ba, self.q_target: bq})
 
             if self.tensorboard:
@@ -163,13 +157,12 @@ class Method(object):
 
             self.iteration += 1
 
-
-    def critic_verify(self, s, action, reward):
-        bs = s[np.newaxis, :]
-        ba = action[np.newaxis, :]
-
-        q = self.sess.run(self.q, {self.S: bs, self.a: ba})
-        td_error = q - reward
+    def verify(self, ba, bq_target):
+        q = self.sess.run(self.q, {self.a: ba, self.q_target: bq_target})
+        td_error = self.sess.run(self.td_error, {self.a: ba, self.q_target: bq_target})
+        print('q_target', bq_target)
+        print('q_test', q)
+        print('q_error', bq_target-q)
         print('td_error', td_error)
 
     def store_transition(self, s, a, r):
@@ -185,24 +178,19 @@ class Method(object):
             n_l1 = self.units_a
             net0 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, name='l0', trainable=trainable)
             net1 = tf.layers.dense(net0, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
-            net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
-            a = tf.layers.dense(net2, self.a_dim, activation=tf.nn.tanh, name='a', trainable=trainable)
-            return a
+            mu = tf.layers.dense(net1, self.a_dim, activation=tf.nn.tanh, name='mu', trainable=trainable)
+            sigma_1 = tf.layers.dense(net1, self.a_dim,  activation=tf.sigmoid, name='sigma_1', trainable=trainable)
+            sigma = tf.multiply(sigma_1, 1, name='sigma')
+            return mu, sigma
 
-    def _build_c(self, s, a, scope, trainable):
+    def _build_c(self, a, scope, trainable):
         # 建立critic网络
         with tf.variable_scope(scope):
             n_l1 = self.units_c
-            w1_s = tf.get_variable('w1_s', [self.s_dim, n_l1], trainable=trainable)
-            w1_a = tf.get_variable('w1_a', [self.a_dim, n_l1], trainable=trainable)
-            b1 = tf.get_variable('b1', [1, n_l1], trainable=trainable)
-            net1 = tf.nn.relu(tf.matmul(s, w1_s) + tf.matmul(a, w1_a) + b1)
+            net1 = tf.layers.dense(a, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
             net2 = tf.layers.dense(net1, n_l1, activation=tf.nn.relu, name='l2', trainable=trainable)
             net3 = tf.layers.dense(net2, n_l1, activation=tf.nn.relu, name='l3', trainable=trainable)
-            net4 = tf.layers.dense(net3, n_l1, activation=tf.nn.relu, name='l4', trainable=trainable)
-            # net5 = tf.layers.dense(net4, n_l1, activation=tf.nn.relu, name='l5', trainable=trainable)
-            # net6 = tf.layers.dense(net5, n_l1, activation=tf.nn.relu, name='l6', trainable=trainable)
-            q = tf.layers.dense(net4, 1, trainable=trainable)  # Q(s,a)
+            q = tf.layers.dense(net3, 1, trainable=trainable)  # Q(s,a)
             return q
 
     def net_save(self):
