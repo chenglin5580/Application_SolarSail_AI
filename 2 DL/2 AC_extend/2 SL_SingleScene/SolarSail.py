@@ -20,7 +20,8 @@ class SolarSail:
         self.reset()
         self.ob_dim = len(self.observation)
         self.action_dim = 5
-        self.a_bound = []
+        self.a_bound = np.array([-1*np.ones(self.action_dim), 1*np.ones(self.action_dim)])
+
 
     def render(self):
         pass
@@ -28,9 +29,9 @@ class SolarSail:
     def reset(self):
         self.t = 0
         self.td = 0
-        rand_r0 = (np.random.rand(1)-0.5)*2
-        self.constant['r0'] = (0.1*rand_r0 + 1.1)[0]
-        # self.constant['r0'] = 1.0
+        # rand_r0 = (np.random.rand(1)-0.5)*2
+        # self.constant['r0'] = (0.1*rand_r0 + 1.1)[0]
+        self.constant['r0'] = 1.0
         self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
         self.state = np.array([self.constant['r0'], self.constant['phi0'],
                                self.constant['u0'], self.constant['v0']])  # [r phi u v]
@@ -43,13 +44,14 @@ class SolarSail:
         ob_profile = np.empty((0, 4))
         alpha_profile = np.empty((0, 1))
         reward_profile = np.empty((0, 1))
-        lambda_all = action[0:4] * 20
-        td_f = action[4] * 300 + 400
+        lambda_all = action[0:4] * 5
+        td_f = action[4] * 250 + 350
 
         while True:
             lambda1, lambda2, lambda3, lambda4 = lambda_all
             r, phi, u, v = self.state  # 当前状态的参数值
-            if np.abs(lambda4) < 1e-5:
+            if np.abs(lambda4) < 0.0001:
+                print('lambad4=', lambda4)
                 if lambda3 <= 0:
                     alpha = 0
                 else:
@@ -59,59 +61,74 @@ class SolarSail:
                 alpha = np.arctan(aaa)
 
             # 求state微分
-            r_dot = u
-            phi_dot = v / r
-            u_dot = self.constant['beta'] * ((np.cos(alpha)) ** 3) / (r ** 2) + \
-                    (v ** 2) / r - 1 / (r ** 2)
-            v_dot = self.constant['beta'] * np.sin(alpha) * (np.cos(alpha) ** 2) / (r ** 2) - u * v / r
+            if r > 0.001:
+                r_dot = u
+                phi_dot = v / r
+                u_dot = self.constant['beta'] * ((np.cos(alpha)) ** 3) / (r ** 2) + \
+                        (v ** 2) / r - 1 / (r ** 2)
+                v_dot = self.constant['beta'] * np.sin(alpha) * (np.cos(alpha) ** 2) / (r ** 2) - u * v / r
 
-            lambda1_dot = lambda2 * v / (r ** 2) + \
-                          lambda3 * (2 * self.constant['beta'] * np.cos(alpha) ** 3 / (r ** 3) + \
-                                     v ** 2 / (r ** 2) - 2 / (r ** 3)) + \
-                          lambda4 * (2 * self.constant['beta'] * np.sin(alpha) * np.cos(alpha) ** 2 / (r ** 3) - \
-                                     u * v ** 2 / r)
-            lambda2_dot = 0
-            lamnad3_dot = - lambda1 + lambda4 * v / r
-            lambda4_dot = - lambda2 / r - 2 * lambda3 * v / r + lambda4 * u / r
+                lambda1_dot = lambda2 * v / (r ** 2) + \
+                              lambda3 * (2 * self.constant['beta'] * np.cos(alpha) ** 3 / (r ** 3) + \
+                                         v ** 2 / (r ** 2) - 2 / (r ** 3)) + \
+                              lambda4 * (2 * self.constant['beta'] * np.sin(alpha) * np.cos(alpha) ** 2 / (r ** 3) - \
+                                         u * v ** 2 / r)
+                lambda2_dot = 0
+                lamnad3_dot = - lambda1 + lambda4 * v / r
+                lambda4_dot = - lambda2 / r - 2 * lambda3 * v / r + lambda4 * u / r
 
-            # 下一个状态
-            self.state += self.delta_t * np.array([r_dot, phi_dot, u_dot, v_dot])  # [r,phi,u,v]
-            lambda_all += self.delta_t * np.array([lambda1_dot, lambda2_dot, lamnad3_dot, lambda4_dot])
-            self.td += self.delta_d
-            self.t += self.delta_t
+                # 下一个状态
+                self.state += self.delta_t * np.array([r_dot, phi_dot, u_dot, v_dot])  # [r,phi,u,v]
+                lambda_all += self.delta_t * np.array([lambda1_dot, lambda2_dot, lamnad3_dot, lambda4_dot])
+                self.td += self.delta_d
+                self.t += self.delta_t
 
+                # memory
+                ob_profile = np.vstack((ob_profile, self.state))
+                alpha_profile = np.vstack((alpha_profile, alpha))
+                # reward_profile = np.vstack((reward_profile, reward))
 
-            # reward calculation
-            c1 = 1000
-            c2 = 1000
-            c3 = 1000
-            reward = self.t + c1 * np.abs(self.constant['r_f'] - self.state[0]) + \
-                      c2 * np.abs(self.constant['u_f'] - self.state[2]) + \
-                      c3 * np.abs(self.constant['v_f'] - self.state[3])
+                # terminate
+                # if self.state[3] >= self.constant['v_f']:
+                if self.td >= td_f:
 
-            # memory
-            ob_profile = np.vstack((ob_profile, self.state))
-            alpha_profile = np.vstack((alpha_profile, alpha))
-            reward_profile = np.vstack((reward_profile, reward))
+                    # reward calculation
+                    c1 = -1000
+                    c2 = -1000
+                    c3 = -1000
+                    reward = 30 - self.t + c1 * np.abs(self.constant['r_f'] - self.state[0]) + \
+                             c2 * np.abs(self.constant['u_f'] - self.state[2]) + \
+                             c3 * np.abs(self.constant['v_f'] - self.state[3])
 
-
-            # terminate
-            # if self.state[3] >= self.constant['v_f']:
-            if self.td >= td_f:
+                    done = True
+                    info = {}
+                    info['ob_profile'] = ob_profile
+                    info['alpha_profile'] = alpha_profile
+                    info['reward_profile'] = reward_profile
+                    if reward > 10000:
+                        reward = 10000
+                    elif reward < -10000:
+                        reward = -10000
+                    break
+            else:
+                print('trajectory r ===============================0')
                 done = True
                 info = {}
                 info['ob_profile'] = ob_profile
                 info['alpha_profile'] = alpha_profile
                 info['reward_profile'] = reward_profile
+                reward = -10000
                 break
 
-        return self.observation.copy(), reward/10, done, info
+        return self.observation.copy(), reward, done, info
 
 
 if __name__ == '__main__':
+
     env = SolarSail()
-    action = np.array([(-1.609601 + 5) / 10, (0.042179 + 5) / 10, \
-                       (-0.160488 + 5) / 10, (-1.597537 + 5) / 10, (568 - 100) / 500])
+    # action = np.array([(-1.609601 + 5) / 10, (0.042179 + 5) / 10, \
+    #                    (-0.160488 + 5) / 10, (-1.597537 + 5) / 10, (568 - 100) / 500])
+    action = np.array([-0.9999999, -0.9999932, 1., -1., 0.9961483])
     observation, reward, done, info = env.step(action)
     print(reward)
 

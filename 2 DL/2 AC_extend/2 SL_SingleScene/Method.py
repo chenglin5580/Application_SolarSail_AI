@@ -58,6 +58,9 @@ class Method(object):
         self.e_liner_times = e_liner_times
         self.train = train
         self.tensorboard = tensorboard
+        self.abound_low = np.array([-1, -1, -1, -1, -1])
+        self.abound_high = np.array([1, 1, 1, 1, 1])
+        self.OPT_A = tf.train.RMSPropOptimizer(self.LR_A, name='RMSPropA')  # actor优化器定义
 
         self.pointer = 0
         self.a_replace_counter, self.c_replace_counter = 0, 0
@@ -81,9 +84,6 @@ class Method(object):
         with tf.variable_scope('Actor'):
             mu, sigma = self._build_a(self.S, scope='eval', trainable=True)
             mu, sigma = mu, sigma + 1e-4
-            # self.a_pre = self._build_a(self.S, scope='eval', trainable=True)
-            tf.summary.histogram('Actor/eval', mu)
-            tf.summary.histogram('Actor/sigma', sigma)
             self.ae_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Actor/eval')
 
         # 建立Critic网络
@@ -93,30 +93,30 @@ class Method(object):
             self.ce_params = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, scope='Critic/eval')
 
         # q train
-        td = tf.subtract(self.q_target, self.q, name='TD_error')
-        with tf.name_scope('c_loss'):
+        with tf.name_scope('q_train'):
+            td = tf.subtract(self.q_target, self.q, name='TD_error')
             self.c_loss = tf.reduce_mean(tf.square(td))
-        tf.summary.scalar('td_error', self.c_loss)
-        self.ctrain = tf.train.AdamOptimizer(self.LR_C).minimize(self.c_loss, var_list=self.ce_params)
+            tf.summary.scalar('c_loss', self.c_loss)
+            self.ctrain = tf.train.AdamOptimizer(self.LR_C).minimize(self.c_loss, var_list=self.ce_params)
 
-        # a train
-        normal_dist = tf.contrib.distributions.Normal(mu, sigma)  # tf自带的正态分布函数
+        # choose_a
         with tf.name_scope('choose_a'):  # use local params to choose action
-            self.A = tf.clip_by_value(tf.squeeze(normal_dist.sample(1), axis=0), -1, 1)  # 根据actor给出的分布，选取动作
-            self.B = tf.clip_by_value(mu, -1, 1)  # 根据actor给出的分布，选取动作
+            normal_dist = tf.contrib.distributions.Normal(mu, sigma)  # tf自带的正态分布函数
+            self.A = tf.clip_by_value(tf.squeeze(normal_dist.sample(1), axis=0), self.abound_low, self.abound_high)  # 根据actor给出的分布，选取动作
+            self.B = tf.clip_by_value(mu, self.abound_low, self.abound_high)  # 根据actor给出的分布，选取动作
             self.C = sigma
 
         # 动作网络优化
-        with tf.name_scope('a_loss'):
+        with tf.name_scope('a_train'):
             log_prob = normal_dist.log_prob(self.a_his)  # 概率的log值
             exp_v = log_prob * tf.stop_gradient(td)  # stop_gradient停止梯度传递的意思
             entropy = normal_dist.entropy()
             # encourage exploration，香农熵，评价分布的不确定性，鼓励探索，防止提早进入次优
-            self.exp_v = -0.01 * entropy + exp_v
-            self.a_loss = tf.reduce_mean(self.exp_v)  # actor的优化目标是价值函数最大
-
-        self.atrain = tf.train.AdamOptimizer(self.LR_A).minimize(self.a_loss, var_list=self.ae_params)
-        tf.summary.scalar('a_loss',  self.a_loss)
+            self.exp_v = 0.01 * entropy + exp_v
+            self.a_loss = tf.reduce_mean(-self.exp_v)  # actor的优化目标是价值函数最大
+            self.a_grads = tf.gradients(self.a_loss, self.ae_params)  # 计算梯度
+            self.atrain = self.OPT_A.apply_gradients(zip(self.a_grads, self.ae_params))
+            tf.summary.scalar('a_loss', self.a_loss)
 
         self.actor_saver = tf.train.Saver()
         if self.train:
@@ -130,15 +130,15 @@ class Method(object):
 
     def chose_action(self, s):
         if self.train:
-            if self.pointer < self.actor_learn_start:
-                action = np.random.rand(1, 5).reshape(5)
-            else:
-                s = s[np.newaxis, :]
-                action = self.sess.run(self.A, {self.S: s})[0]
+            s = s[np.newaxis, :]
+            action = self.sess.run(self.A, {self.S: s})[0]
+            mu = self.sess.run(self.B, {self.S: s})[0]
+            sigma = self.sess.run(self.C, {self.S: s})[0]
+            q = self.sess.run(self.q, {self.S: s})[0]
+            print('mu', mu, 'sigma', sigma, 'q', q)
         else:
             s = s[np.newaxis, :]
             action = self.sess.run(self.B, {self.S: s})[0]
-
         return action
 
 
@@ -146,10 +146,8 @@ class Method(object):
         if self.pointer < self.MEMORY_CAPACITY:
             # 未存储够足够的记忆池的容量
             print('store')
-            td_error = 0
             pass
         else:
-            self.sess.run(self.replace)
             # 更新目标网络，有可以改进的地方，可以更改更新目标网络的频率，不过减小tau会比较好
             indices = np.random.choice(self.MEMORY_CAPACITY, size=self.BATCH_SIZE)
             bt = self.memory[indices, :]
@@ -158,16 +156,12 @@ class Method(object):
             bq = bt[:, -1:]
 
             # 更新a和c，有可以改进的地方，可以适当更改一些更新a和c的频率
-            self.sess.run(self.ctrain, {self.S: bs, self.a: ba, self.q_target: bq})
-            td_error = self.sess.run(self.td_error, {self.S: bs, self.a: ba, self.q_target: bq})
-            print('reward_error', td_error)
-
-            if self.pointer > self.actor_learn_start:
-                self.sess.run(self.atrain, {self.S: bs, self.a: ba, self.q_target: bq})
+            self.sess.run(self.ctrain, {self.S: bs, self.a_his: ba, self.q_target: bq})
+            self.sess.run(self.atrain, {self.S: bs, self.a_his: ba, self.q_target: bq})
 
             if self.tensorboard:
                 if self.iteration % 10 == 0:
-                    result_merge = self.sess.run(self.merged, {self.S: bs, self.a: ba, self.q_target: bq})
+                    result_merge = self.sess.run(self.merged, {self.S: bs, self.a_his: ba, self.q_target: bq})
                     self.writer.add_summary(result_merge, self.iteration)
 
             self.iteration += 1
@@ -195,10 +189,10 @@ class Method(object):
             net0 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, name='l0', trainable=trainable)
             net1 = tf.layers.dense(net0, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
             mu = tf.layers.dense(net1, self.a_dim, activation=tf.nn.tanh, name='mu', trainable=trainable)
-            sigma_1 = tf.layers.dense(net1, self.a_dim, activation=tf.sigmoid, name='sigma_1', trainable=trainable)
-            sigma = tf.multiply(sigma_1, 1, name='sigma')
+            # sigma = tf.layers.dense(net1, self.a_dim, activation=tf.sigmoid, name='sigma_1', trainable=trainable)
+            sigma = tf.layers.dense(net1, self.a_dim, activation=tf.nn.softplus, name='sigma_1', trainable=trainable)
+            # sigma = tf.multiply(sigma_1, 1, name='sigma')
             return mu, sigma
-
 
 
     def _build_c(self, s, scope, trainable):
