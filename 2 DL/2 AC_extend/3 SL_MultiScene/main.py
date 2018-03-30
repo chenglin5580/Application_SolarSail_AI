@@ -20,7 +20,7 @@ max_Ep_Steps = 2000
 rendering = False
 ############################ Object and Method  ####################################
 
-env = Object_AI(random=False)
+env = Object_AI(random=True)
 
 ob_dim = env.ob_dim
 print("环境状态空间维度为", ob_dim)
@@ -34,7 +34,8 @@ print('-----------------------------\t')
 
 
 ## method settting
-method = 'r0=random0.2'
+method = 'unit_a=500+3'
+
 train_flag = True
 train_flag = False
 RLmethod = Method(
@@ -45,14 +46,14 @@ RLmethod = Method(
             e_greedy_end=0.05,  # 最后的探索值 0.1倍幅值
             e_liner_times=1500*50,  # 探索值经历多少次学习变成e_end
             epilon_init=0.5,  # 表示1倍的幅值作为初始值
-            LR_A=0.000005,  # Actor的学习率
+            LR_A=0.000002,  # Actor的学习率
             LR_C=0.0001,  # Critic的学习率
             GAMMA=0.9,  # 衰减系数
             TAU=0.01,  # 软替代率，例如0.01表示学习eval网络0.01的值，和原网络0.99的值
             MEMORY_SIZE=128,  # 记忆池容量
             BATCH_SIZE=128,  # 批次数量
-            units_a=128,  # Actor神经网络单元数
-            units_c=256,  # Crtic神经网络单元数
+            units_a=500,  # Actor神经网络单元数
+            units_c=500,  # Crtic神经网络单元数
             actor_learn_start=5000,  # Actor开始学习的代数
             tensorboard=True,  # 是否存储tensorboard
             train=train_flag  # 训练的时候有探索
@@ -81,7 +82,7 @@ if RLmethod.train:
 else:
     # test the critic
     print('----------------paper result-------------------')
-    action = np.array([(-1.609601)/5, (0.042179)/5, (-0.160488)/5, (-1.597537)/5, (568-350)/250])
+    action = np.array([(-1.609601)/10, (0.042179)/10, (-0.160488)/10, (-1.597537)/10, (568-350)/250])
     observation, reward, done, info = env.step(action)
     print('paper_reward', reward)
     ba = action

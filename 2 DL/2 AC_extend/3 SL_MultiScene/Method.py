@@ -81,7 +81,6 @@ class Method(object):
         self.q_target = tf.placeholder(tf.float32, [None, 1], 'q_target')
 
 
-
         # 建立actor网络
         with tf.variable_scope('Actor'):
             mu, sigma = self._build_a(self.S, scope='eval', trainable=True)
@@ -112,7 +111,9 @@ class Method(object):
         with tf.name_scope('a_train'):
             log_prob = normal_dist.log_prob(self.a_his)  # 概率的log值
             exp_v = log_prob * tf.stop_gradient(td)  # stop_gradient停止梯度传递的意思
+            tf.summary.scalar('exp_v', tf.reduce_mean(exp_v))
             entropy = normal_dist.entropy()
+            tf.summary.scalar('entropy', tf.reduce_mean(0.01 * entropy))
             # encourage exploration，香农熵，评价分布的不确定性，鼓励探索，防止提早进入次优
             self.exp_v = 0.01 * entropy + exp_v
             self.a_loss = tf.reduce_mean(-self.exp_v)  # actor的优化目标是价值函数最大
@@ -193,9 +194,9 @@ class Method(object):
             net0 = tf.layers.dense(s, n_l1, activation=tf.nn.relu, name='l0', trainable=trainable)
             net1 = tf.layers.dense(net0, n_l1, activation=tf.nn.relu, name='l1', trainable=trainable)
             mu = tf.layers.dense(net1, self.a_dim, activation=tf.nn.tanh, name='mu', trainable=trainable)
-            # sigma = tf.layers.dense(net1, self.a_dim, activation=tf.sigmoid, name='sigma_1', trainable=trainable)
-            sigma = tf.layers.dense(net1, self.a_dim, activation=tf.nn.softplus, name='sigma_1', trainable=trainable)
-            # sigma = tf.multiply(sigma_1, 1, name='sigma')
+            # sigma_1 = tf.layers.dense(net1, self.a_dim, activation=tf.sigmoid, name='sigma_1', trainable=trainable)
+            sigma_1 = tf.layers.dense(net1, self.a_dim, activation=tf.nn.softplus, name='sigma_1', trainable=trainable)
+            sigma = tf.multiply(sigma_1, 0.5, name='sigma')
             return mu, sigma
 
 

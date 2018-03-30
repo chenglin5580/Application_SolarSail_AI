@@ -32,7 +32,7 @@ class SolarSail:
         self.td = 0
         if self.random == True:
             rand_r0 = np.random.rand(1)
-            self.constant['r0'] = (0.2 * rand_r0 + 1.0)[0]
+            self.constant['r0'] = (0.1 * rand_r0 + 1.0)[0]
             self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
         else:
             rand_r0 = 0.
@@ -51,7 +51,7 @@ class SolarSail:
         ob_profile = np.empty((0, 4))
         alpha_profile = np.empty((0, 1))
         reward_profile = np.empty((0, 1))
-        lambda_all = action[0:4] * 5
+        lambda_all = action[0:4] * 10
         td_f = action[4] * 250 + 350
 
         while True:
@@ -100,9 +100,9 @@ class SolarSail:
                 if self.td >= td_f:
 
                     # reward calculation
-                    c1 = -1000
-                    c2 = -1000
-                    c3 = -1000
+                    c1 = -200
+                    c2 = -200
+                    c3 = -200
                     reward = 30 - self.t + c1 * np.abs(self.constant['r_f'] - self.state[0]) + \
                              c2 * np.abs(self.constant['u_f'] - self.state[2]) + \
                              c3 * np.abs(self.constant['v_f'] - self.state[3])
