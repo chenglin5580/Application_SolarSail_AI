@@ -80,6 +80,8 @@ class Method(object):
         self.a_his = tf.placeholder(tf.float32, [None, a_dim], 'action')
         self.q_target = tf.placeholder(tf.float32, [None, 1], 'q_target')
 
+
+
         # 建立actor网络
         with tf.variable_scope('Actor'):
             mu, sigma = self._build_a(self.S, scope='eval', trainable=True)
@@ -117,6 +119,8 @@ class Method(object):
             self.a_grads = tf.gradients(self.a_loss, self.ae_params)  # 计算梯度
             self.atrain = self.OPT_A.apply_gradients(zip(self.a_grads, self.ae_params))
             tf.summary.scalar('a_loss', self.a_loss)
+            q_average = tf.reduce_mean(self.q_target)
+            tf.summary.scalar('q_average', q_average)
 
         self.actor_saver = tf.train.Saver()
         if self.train:

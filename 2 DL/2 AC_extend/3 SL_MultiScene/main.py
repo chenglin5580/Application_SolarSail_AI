@@ -20,7 +20,7 @@ max_Ep_Steps = 2000
 rendering = False
 ############################ Object and Method  ####################################
 
-env = Object_AI()
+env = Object_AI(random=False)
 
 ob_dim = env.ob_dim
 print("环境状态空间维度为", ob_dim)
@@ -49,8 +49,8 @@ RLmethod = Method(
             LR_C=0.0001,  # Critic的学习率
             GAMMA=0.9,  # 衰减系数
             TAU=0.01,  # 软替代率，例如0.01表示学习eval网络0.01的值，和原网络0.99的值
-            MEMORY_SIZE=120,  # 记忆池容量
-            BATCH_SIZE=120,  # 批次数量
+            MEMORY_SIZE=128,  # 记忆池容量
+            BATCH_SIZE=128,  # 批次数量
             units_a=128,  # Actor神经网络单元数
             units_c=256,  # Crtic神经网络单元数
             actor_learn_start=5000,  # Actor开始学习的代数

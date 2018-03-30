@@ -1,0 +1,2 @@
+model_checkpoint_path: "C:\\Users\\cheng\\PycharmProjects\\Application_SolarSail_AI\\2 DL\\2 AC_extend\\3 SL_MultiScene\\DDPG_Net\\data.chkp"
+all_model_checkpoint_paths: "C:\\Users\\cheng\\PycharmProjects\\Application_SolarSail_AI\\2 DL\\2 AC_extend\\3 SL_MultiScene\\DDPG_Net\\data.chkp"
