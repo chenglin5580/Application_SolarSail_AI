@@ -34,9 +34,9 @@ print('-----------------------------\t')
 
 
 ## method settting
-method = 'r0=random0.1'
+method = 'r0=random0.2'
 train_flag = True
-# train_flag = False
+train_flag = False
 RLmethod = Method(
             method,
             env.action_dim,  # 动作的维度
