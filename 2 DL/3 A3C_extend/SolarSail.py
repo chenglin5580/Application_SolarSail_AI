@@ -32,7 +32,7 @@ class SolarSail:
         self.td = 0
         if self.random == True:
             rand_r0 = np.random.rand(1)
-            self.constant['r0'] = (0.1 * rand_r0 + 1.0)[0]
+            self.constant['r0'] = (0.2 * rand_r0 + 1.0)[0]
             self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
         else:
             rand_r0 = 0.
