@@ -55,17 +55,20 @@ def display(A3C, display_flag):
         plt.plot(ob_profile[:, 0], 'm')
         plt.plot(A3C.para.env.constant['r_f'] * np.ones(len(ob_profile[:, 0])))
         plt.title('r')
+        plt.ylim((0, 1.7))
 
         plt.figure(3)
         plt.plot(ob_profile[:, 2], 'm')
         plt.plot(A3C.para.env.constant['u_f'] * np.ones(len(ob_profile[:, 0])))
         plt.title('v')
         plt.title('u')
+        plt.ylim((-0.5, 0.5))
 
         plt.figure(4)
         plt.plot(ob_profile[:, 3], 'm')
         plt.plot(A3C.para.env.constant['v_f'] * np.ones(len(ob_profile[:, 0])))
         plt.title('v')
+        plt.ylim((0.5, 1.2))
 
         plt.figure(5)
         plt.plot(alpha_profile * 57.3, 'm')
@@ -74,6 +77,9 @@ def display(A3C, display_flag):
         plt.figure(6)
         plt.plot(info['reward_profile'], 'm')
         plt.title('reward')
+
+
+
 
         plt.show()
 

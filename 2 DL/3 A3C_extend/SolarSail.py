@@ -5,9 +5,10 @@ import matplotlib.pyplot as plt
 
 class SolarSail:
 
-    def __init__(self):
+    def __init__(self, random=False):
         self.t = None
         self.state = None
+        self.random = random
         # 归一化参数长度除以AU,时间除以TU
         self.AU = 1.4959787 * (10 ** 11)
         self.mu = 1.32712348 * (10 ** 20)
@@ -29,14 +30,20 @@ class SolarSail:
     def reset(self):
         self.t = 0
         self.td = 0
-        # rand_r0 = (np.random.rand(1)-0.5)*2
-        # self.constant['r0'] = (0.1*rand_r0 + 1.1)[0]
-        self.constant['r0'] = 1.0
-        self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
+        if self.random == True:
+            rand_r0 = np.random.rand(1)
+            self.constant['r0'] = (0.1 * rand_r0 + 1.0)[0]
+            self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
+        else:
+            rand_r0 = 0.
+            self.constant['r0'] = (0.2 * rand_r0 + 1.0)
+            self.constant['v0'] = 1.0 / np.sqrt(self.constant['r0'])
+
         self.state = np.array([self.constant['r0'], self.constant['phi0'],
                                self.constant['u0'], self.constant['v0']])  # [r phi u v]
-        self.observation = np.array([self.constant['r0']])
-        return self.observation
+        self.observation = np.array([self.constant['r0'], rand_r0])
+
+        return self.observation.copy()
 
     def step(self, action):
         # 传入单位是度
@@ -44,8 +51,8 @@ class SolarSail:
         ob_profile = np.empty((0, 4))
         alpha_profile = np.empty((0, 1))
         reward_profile = np.empty((0, 1))
-        lambda_all = action[0:4] * 5
-        td_f = action[4] * 300 + 400
+        lambda_all = action[0:4] * 10
+        td_f = action[4] * 250 + 350
 
         while True:
             lambda1, lambda2, lambda3, lambda4 = lambda_all
@@ -93,10 +100,10 @@ class SolarSail:
                 if self.td >= td_f:
 
                     # reward calculation
-                    c1 = 1000
-                    c2 = 1000
-                    c3 = 1000
-                    reward = -300 + self.t + c1 * np.abs(self.constant['r_f'] - self.state[0]) + \
+                    c1 = -200
+                    c2 = -200
+                    c3 = -200
+                    reward = 30 - self.t + c1 * np.abs(self.constant['r_f'] - self.state[0]) + \
                              c2 * np.abs(self.constant['u_f'] - self.state[2]) + \
                              c3 * np.abs(self.constant['v_f'] - self.state[3])
 
@@ -117,16 +124,18 @@ class SolarSail:
                 info['ob_profile'] = ob_profile
                 info['alpha_profile'] = alpha_profile
                 info['reward_profile'] = reward_profile
-                reward = 10000
+                reward = -10000
                 break
 
-        return self.observation.copy(), -reward/10, done, info
+        return self.observation.copy(), reward, done, info
 
 
 if __name__ == '__main__':
+
     env = SolarSail()
-    action = np.array([(-1.609601 + 5) / 10, (0.042179 + 5) / 10, \
-                       (-0.160488 + 5) / 10, (-1.597537 + 5) / 10, (568 - 100) / 500])
+    # action = np.array([(-1.609601 + 5) / 10, (0.042179 + 5) / 10, \
+    #                    (-0.160488 + 5) / 10, (-1.597537 + 5) / 10, (568 - 100) / 500])
+    action = np.array([-0.9999999, -0.9999932, 1., -1., 0.9961483])
     observation, reward, done, info = env.step(action)
     print(reward)
 
