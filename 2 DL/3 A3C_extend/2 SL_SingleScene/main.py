@@ -16,9 +16,9 @@ para = A3C.Para(env,  # 环境参数包括state_dim,action_dim,abound,step,reset
                 UPDATE_GLOBAL_ITER=50,  # 多少代进行一次学习，调小一些学的比较快
                 gamma=0.9,  # 奖励衰减率
                 ENTROPY_BETA=0.01,  # 表征探索大小的量，越大结果越不确定
-                LR_A=0.00002,  # Actor的学习率
+                LR_A=0.000002,  # Actor的学习率
                 LR_C=0.0001,  # Crtic的学习率
-                sigma_mul=1,
+                sigma_mul=0.5,
                 MAX_EP_STEP=600,  # 控制一个回合的最长长度
                 train=train_flag  # 表示训练
                 )
