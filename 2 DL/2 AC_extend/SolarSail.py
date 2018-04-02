@@ -108,7 +108,7 @@ class SolarSail:
                 if self.td >= td_f:
 
                     # reward calculation
-                    c1 = -100000
+                    c1 = -10000
                     c2 = -1000
                     c3 = -1000
                     reward = 30 - self.t + c1 * np.abs(self.constant['r_f'] - self.state[0]) + \

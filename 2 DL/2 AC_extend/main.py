@@ -35,7 +35,7 @@ print('-----------------------------\t')
 
 ## method settting
 # tensorboard --logdir="2 DL/2 AC_extend/3 SL_MultiScene/logs"
-method = 'c1=100000,c2=1000,c3=1000,step=0.01'
+method = 'c1=10000,c2=1000,c3=1000,step=0.01 +3'
 
 train_flag = True
 train_flag = False
