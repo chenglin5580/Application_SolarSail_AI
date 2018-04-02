@@ -15,12 +15,12 @@ import matplotlib.pyplot as plt
 
 ############################ Hyper Parameters #################################
 
-max_Episodes = 30000
+max_Episodes = 50000
 max_Ep_Steps = 2000
 rendering = False
 ############################ Object and Method  ####################################
 
-env = Object_AI(random=True)
+env = Object_AI(random=False)
 
 ob_dim = env.ob_dim
 print("环境状态空间维度为", ob_dim)
@@ -35,7 +35,7 @@ print('-----------------------------\t')
 
 ## method settting
 # tensorboard --logdir="2 DL/2 AC_extend/3 SL_MultiScene/logs"
-method = 'unit_a=1000+500+3'
+method = 'c1=100000,c2=1000,c3=1000,step=0.01'
 
 train_flag = True
 train_flag = False
@@ -76,7 +76,7 @@ if RLmethod.train:
 
         RLmethod.learn()
 
-        print('step', i, 'reward', reward)
+        print('step', i, 'reward', reward, 'total_day %.3f' % env.td)
 
     RLmethod.net_save()
 
@@ -110,9 +110,16 @@ else:
     observation, reward, done, info = env.step(action)
     print('reward_actor', reward)
     print('total_day',  env.t)
-    print('r_f_error', env.constant['r_f']-env.state[0])
-    print('u_f_error', env.state[2])
-    print('v_f_error', env.state[3]-env.constant['v_f'])
+    print('r_f_error', (env.constant['r_f'] - env.state[0]))
+    print('r_f_error', (env.constant['r_f'] - env.state[0]) * env.AU / 1000)
+    print('u_f_error', (env.state[2]))
+    print('u_f_error', (env.state[2]) * env.VU)
+    print('v_f_error', (env.state[3] - env.constant['v_f']))
+    print('v_f_error', (env.state[3] - env.constant['v_f']) * env.VU)
+    print('v_f', (env.state[3]) * env.VU)
+    # print('r_f_error', env.constant['r_f']-env.state[0])
+    # print('u_f_error', env.state[2])
+    # print('v_f_error', env.state[3]-env.constant['v_f'])
 
     print('----------------Critic result-------------------')
     # RLmethod.critic_verify(observation, action, reward)
