@@ -12,6 +12,7 @@ class SolarSail:
         # 归一化参数长度除以AU,时间除以TU
         self.AU = 1.4959787 * (10 ** 11)
         self.mu = 1.32712348 * (10 ** 20)
+        self.VU = np.sqrt(self.mu / self.AU)
         self.TU = np.sqrt(self.AU ** 3 / self.mu)
         self.constant = {'beta': 0.5 / 5.93, 'u0': 0, 'phi0': 0, 'r_f': 1.524, 'u_f': 0, 'phi_f': 0}
         self.constant['v_f'] = 1.0 / np.sqrt(self.constant['r_f'])
