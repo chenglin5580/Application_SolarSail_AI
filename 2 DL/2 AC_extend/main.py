@@ -4,7 +4,7 @@ DDPG is Actor-Critic based algorithm
 Designer: Lin Cheng  17.08.2017
 """
 
-# TODO A3C结构改进
+# TODO DRL 有机会尝试
 
 ########################### Package  Input  #################################
 
