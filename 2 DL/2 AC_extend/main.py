@@ -20,7 +20,7 @@ max_Ep_Steps = 2000
 rendering = False
 ############################ Object and Method  ####################################
 
-env = Object_AI(random=False)
+env = Object_AI(random=True)
 
 ob_dim = env.ob_dim
 print("环境状态空间维度为", ob_dim)
@@ -35,7 +35,7 @@ print('-----------------------------\t')
 
 ## method settting
 # tensorboard --logdir="2 DL/2 AC_extend/3 SL_MultiScene/logs"
-method = 'c1=10000,c2=1000,c3=1000,step=0.01 +3'
+method = 'random c_increase 1000-100'
 
 train_flag = True
 train_flag = False
@@ -67,6 +67,9 @@ if RLmethod.train:
     for i in range(max_Episodes):
 
         observation = env.reset()
+        env.c1 += (1000 - 100)/max_Episodes
+        env.c2 += (1000 - 100) / max_Episodes
+        env.c3 += (1000 - 100) / max_Episodes
 
         action = RLmethod.chose_action(observation)
         # print(action)

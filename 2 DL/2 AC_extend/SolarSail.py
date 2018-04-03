@@ -23,6 +23,10 @@ class SolarSail:
         self.ob_dim = len(self.observation)
         self.action_dim = 5
         self.a_bound = np.array([-1*np.ones(self.action_dim), 1*np.ones(self.action_dim)])
+        self.c1 = 100
+        self.c2 = 100
+        self.c3 = 100
+
 
 
     def render(self):
@@ -108,12 +112,10 @@ class SolarSail:
                 if self.td >= td_f:
 
                     # reward calculation
-                    c1 = -10000
-                    c2 = -1000
-                    c3 = -1000
-                    reward = 30 - self.t + c1 * np.abs(self.constant['r_f'] - self.state[0]) + \
-                             c2 * np.abs(self.constant['u_f'] - self.state[2]) + \
-                             c3 * np.abs(self.constant['v_f'] - self.state[3])
+
+                    reward = 30 - self.t - self.c1 * np.abs(self.constant['r_f'] - self.state[0]) - \
+                             self.c2 * np.abs(self.constant['u_f'] - self.state[2]) - \
+                             self.c3 * np.abs(self.constant['v_f'] - self.state[3])
 
                     done = True
                     info = {}
