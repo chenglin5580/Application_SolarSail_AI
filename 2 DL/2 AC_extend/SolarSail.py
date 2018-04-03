@@ -23,9 +23,9 @@ class SolarSail:
         self.ob_dim = len(self.observation)
         self.action_dim = 5
         self.a_bound = np.array([-1*np.ones(self.action_dim), 1*np.ones(self.action_dim)])
-        self.c1 = 100
-        self.c2 = 100
-        self.c3 = 100
+        self.c1 = 200
+        self.c2 = 200
+        self.c3 = 200
 
 
 
@@ -122,10 +122,10 @@ class SolarSail:
                     info['ob_profile'] = ob_profile
                     info['alpha_profile'] = alpha_profile
                     info['reward_profile'] = reward_profile
-                    if reward > 10000:
-                        reward = 10000
-                    elif reward < -10000:
-                        reward = -10000
+                    if reward > 1000:
+                        reward = 1000
+                    elif reward < -1000:
+                        reward = -1000
                     break
             else:
                 print('trajectory r ===============================0')
@@ -134,7 +134,7 @@ class SolarSail:
                 info['ob_profile'] = ob_profile
                 info['alpha_profile'] = alpha_profile
                 info['reward_profile'] = reward_profile
-                reward = -10000
+                reward = -1000
                 break
 
         return self.observation.copy(), reward, done, info
